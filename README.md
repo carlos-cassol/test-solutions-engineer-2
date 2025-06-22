@@ -1,147 +1,221 @@
-# BILLOR Test - Technical Brief for Developers
+# 🎯 Test Radar - Control Tower
 
-## Project Overview
+Sistema de monitoramento em tempo real para processos operacionais seguindo o framework RIDEC (Receive, Identify, Decide, Execute, Conclude).
 
-**Test Radar** is a real-time monitoring system for operational processes in a logistics/transportation company. The goal is to create a "Control Tower" that tracks all company processes through webhooks and intelligent alerts.
+## 🏗️ Arquitetura
 
-## Technical Architecture
+- **Backend**: NestJS + Prisma + PostgreSQL
+- **Frontend**: React + TypeScript + Tailwind CSS
+- **IA**: OpenAI GPT-4 para insights preditivos
+- **Containerização**: Docker + Docker Compose
+- **Cache**: Redis (opcional)
 
-### Preferred Stack (Google/Open Source)
-- **Backend**: NestJs
-- **Database**: PostgreSQL + Redis (a plus)
-- **Frontend**: Your Choice
-- **Infrastructure**: Docker
+## 🚀 Quick Start
 
-### Core Components
-1. **Webhook Ingestion Engine** - Receives events from external systems  
-2. **RIDEC Processor** - Maps events to process stages (R→I→D→E→C)  
-3. **SLA Monitor** - Controls deadlines and calculates metrics  
-4. **Alert Engine** - Intelligent notification system with AI predictions  
-5. **Real-time Dashboard** - Web interface with charts and metrics  
-6. **AI Assistant** - Smart recommendations and anomaly detection  
+### Pré-requisitos
+- Docker e Docker Compose
+- Node.js 18+ (para desenvolvimento local)
 
-## RIDEC Framework
+### 1. Clone o repositório
+```bash
+git clone <repository-url>
+cd test-solutions-engineer-2
+```
 
-All processes follow the **RIDEC** pattern:
-- **R**eceive: Initial input/request  
-- **I**dentify: Analysis and diagnosis  
-- **D**ecide: Approval/direction  
-- **E**xecute: Action implementation  
-- **C**onclude: Closure and registration  
+### 2. Configure as variáveis de ambiente
+```bash
+# Backend
+cp backend/env.example backend/.env
+# Edite backend/.env com suas configurações
+```
 
-Each stage has specific SLA and generates alerts when approaching deadline.
+### 3. Execute com Docker
+```bash
+# Subir todos os serviços
+docker-compose up -d
 
-## AI Integration Opportunities
+# Ver logs
+docker-compose logs -f
 
-### 1. **Predictive Analytics**
-- Predict SLA violations before they happen  
-- Identify bottleneck patterns  
-- Forecast resource needs  
+# Parar serviços
+docker-compose down
+```
 
-### 2. **Intelligent Alerting**
-- Smart alert prioritization (reduce noise)  
-- Context-aware notifications  
-- Auto-escalation optimization  
+### 4. Acesse a aplicação
+- **Frontend**: http://localhost:3001
+- **Backend API**: http://localhost:3000
+- **Swagger Docs**: http://localhost:3000/api
+- **Database**: localhost:5432
 
-### 3. **Process Optimization**
-- Suggest process improvements  
-- Detect anomalies in workflows  
-- Resource allocation recommendations  
+## 📋 Funcionalidades
 
----
+### ✅ Backend (Implementado)
+- [x] Sistema de webhooks para manutenção
+- [x] Processamento RIDEC com estágios
+- [x] Cálculo automático de SLA
+- [x] Sistema de alertas (4 níveis)
+- [x] Integração com OpenAI para insights
+- [x] Logging completo de eventos
+- [x] API REST documentada com Swagger
 
-## TECHNICAL CHALLENGE SPECIFICATION
+### ✅ Frontend (Implementado)
+- [x] Dashboard principal com métricas
+- [x] Lista de processos em tempo real
+- [x] Visualização RIDEC com timeline
+- [x] Painel de alertas
+- [x] Detalhes do processo com insights de IA
+- [x] Interface responsiva e moderna
 
-### **Challenge Objective**
-Create a **simplified MVP** of Test Radar demonstrating core concepts with NestJs, process and AI integration.
+## 🔧 Desenvolvimento Local
 
----
+### Backend
+```bash
+cd backend
+npm install
+npm run start:dev
+```
 
-## **Part 1: Backend (Webhook + Processing + AI)**
+### Frontend
+```bash
+cd frontend
+npm install
+npm start
+```
 
-### Core API Requirements:
-1. **Webhook Endpoint** (`POST /webhooks/maintenance`)  
-   - Receive simulated maintenance events  
-   - Validate payload structure  
-   - Process events through RIDEC pipeline  
+## 📡 API Endpoints
 
-2. **RIDEC Engine**  
-   - Map events to stages (R→I→D→E→C)  
-   - Control SLA for each stage  
-   - Calculate time consumption percentage  
+### Webhooks
+- `POST /webhooks/maintenance` - Receber eventos de manutenção
 
-3. **Alert System with AI**  
-   - Generate alerts when SLA > 80%  
-   - **AI Feature**: Predict potential delays
-   - Auto-escalation when SLA > 100%  
-   - Structured logging of all events  
+### Processos
+- `GET /processes` - Listar todos os processos
+- `GET /processes/:id` - Detalhes do processo
+- `GET /processes/:id/alerts` - Alertas do processo
+- `GET /processes/:id/events` - Eventos do processo
+- `POST /processes/test-webhook` - Testar webhook
+- `GET /processes/test-sla/:processId` - Testar cenários de SLA
 
-4. **AI Integration** (Choose ONE):  
-   - **Option A**: Simple anomaly detection  
-   - **Option B**: Basic prediction model  
-   - **Option C**: Smart alert scoring  
+## 🎯 Framework RIDEC
 
----
+Todos os processos seguem o padrão RIDEC:
 
-##**Part 2: Frontend (Dashboard + AI Insights)**
+1. **R**eceive - Recebimento inicial
+2. **I**dentify - Identificação e análise
+3. **D**ecide - Decisão e aprovação
+4. **E**xecute - Execução da ação
+5. **C**onclude - Conclusão e registro
 
-### Dashboard Requirements:
-1. **Main Dashboard**
-   - List active processes  
-   - Visual status (traffic light)  
-   - Basic metrics  
-   - **AI Insight Panel**  
+## 🚨 Sistema de Alertas
 
-2. **Process Visualization**
-   - RIDEC timeline  
-   - Elapsed time vs SLA  
-   - Event history  
-   - **AI Feature**: Predicted completion time  
+- **Nível 1**: Recuperação (processo voltou ao normal)
+- **Nível 2**: Inconsistência (estágios pulados)
+- **Nível 3**: Risco (SLA > 80%)
+- **Nível 4**: Vencido (SLA > 100%)
 
-3. **Alerts & AI**
-   - Active alerts list  
-   - Real-time notifications  
-   - **AI Priority Score**  
+## 🤖 Integração com IA
 
----
+O sistema utiliza OpenAI para:
+- Análise preditiva de processos
+- Detecção de anomalias
+- Recomendações de otimização
+- Cálculo de score de risco
 
-## **Suggested Data Structure**
+## 📊 Exemplo de Webhook
 
-```typescript
-interface Process {
-  id: string;
-  title: string;
-  type: 'maintenance' | 'financial' | 'supply';
-  vehicleId?: string;
-  currentStage: 'R' | 'I' | 'D' | 'E' | 'C';
-  status: 'active' | 'completed' | 'overdue' | 'at_risk';
-  createdAt: Date;
-  predictedCompletionTime?: Date;
-  riskScore?: number;
-  stages: {
-    R: { startTime?: Date; endTime?: Date; sla: number; };
-    I: { startTime?: Date; endTime?: Date; sla: number; };
-    D: { startTime?: Date; endTime?: Date; sla: number; };
-    E: { startTime?: Date; endTime?: Date; sla: number; };
-    C: { startTime?: Date; endTime?: Date; sla: number; };
-  };
+```json
+{
+  "event": "maintenance.created",
+  "data": {
+    "processId": "123",
+    "vehicleId": "ABC123",
+    "maintenanceType": "preventive",
+    "timestamp": "2024-01-01T10:00:00Z"
+  }
 }
+```
 
-interface AIInsight {
-  type: 'prediction' | 'anomaly' | 'recommendation';
-  confidence: number;
-  message: string;
-  processId: string;
-  timestamp: Date;
-}
+## 🧪 Testes
 
-interface MaintenanceWebhook {
-  event: 'maintenance.created' | 'maintenance.identified' | 'maintenance.approved' | 'maintenance.completed';
-  data: {
-    processId: string;
-    vehicleId: string;
-    type: 'preventive' | 'corrective' | 'emergency';
-    timestamp: string;
-    metadata?: any;
-  };
-}
+```bash
+# Backend
+cd backend
+npm run test:all
+
+# Frontend
+cd frontend
+npm test
+```
+
+## 📁 Estrutura do Projeto
+
+```
+test-solutions-engineer-2/
+├── backend/                 # API NestJS
+│   ├── src/
+│   │   ├── processes/      # Lógica de processos
+│   │   ├── webhooks/       # Endpoints de webhook
+│   │   ├── AI/            # Integração com IA
+│   │   ├── alerts/        # Sistema de alertas
+│   │   └── event/         # Logging de eventos
+│   ├── prisma/            # Schema do banco
+│   └── Dockerfile
+├── frontend/               # Interface React
+│   ├── src/
+│   │   ├── components/    # Componentes React
+│   │   └── types/         # Tipos TypeScript
+│   └── Dockerfile
+├── docker-compose.yml      # Orquestração
+└── README.md
+```
+
+## 🔒 Variáveis de Ambiente
+
+### Backend (.env)
+```env
+DATABASE_URL=postgresql://postgres:postgres@localhost:5432/test_radar
+REDIS_URL=redis://localhost:6379
+PORT=3000
+NODE_ENV=development
+OPENAI_API_KEY=your_openai_api_key_here
+```
+
+## 📈 Métricas e Monitoramento
+
+O dashboard exibe:
+- Total de processos
+- Processos ativos
+- Processos em risco
+- Processos vencidos
+- Alertas críticos
+- Insights de IA
+
+## 🚀 Deploy
+
+O projeto está configurado para deploy com Docker:
+
+```bash
+# Build e deploy
+docker-compose up -d --build
+
+# Verificar status
+docker-compose ps
+
+# Logs em tempo real
+docker-compose logs -f backend
+```
+
+## 🤝 Contribuição
+
+1. Fork o projeto
+2. Crie uma branch para sua feature
+3. Commit suas mudanças
+4. Push para a branch
+5. Abra um Pull Request
+
+## 📄 Licença
+
+Este projeto foi desenvolvido para o teste técnico da Billor.
+
+---
+
+**Test Radar** - Control Tower para monitoramento de processos operacionais 🎯 

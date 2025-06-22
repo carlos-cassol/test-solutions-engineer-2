@@ -1,0 +1,58 @@
+version: '3.8'
+
+services:
+  # PostgreSQL Database
+  postgres:
+    image: postgres:15-alpine
+    container_name: test-radar-db
+    environment:
+      POSTGRES_DB: test_radar
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - test-radar-network
+
+  # Backend API
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: test-radar-backend
+    environment:
+      DATABASE_URL: postgresql://postgres:postgres@postgres:5432/test_radar
+      PORT: 3000
+      NODE_ENV: production
+    ports:
+      - "3000:3000"
+    depends_on:
+      - postgres
+    networks:
+      - test-radar-network
+    volumes:
+      - ./backend:/app
+      - /app/node_modules
+
+  # Frontend
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: test-radar-frontend
+    ports:
+      - "3001:3001"
+    depends_on:
+      - backend
+    networks:
+      - test-radar-network
+
+volumes:
+  postgres_data:
+
+
+networks:
+  test-radar-network:
+    driver: bridge

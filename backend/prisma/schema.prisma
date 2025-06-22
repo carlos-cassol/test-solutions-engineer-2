@@ -1,0 +1,122 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
+// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum ProcessType {
+  MAINTENANCE
+  FINANCIAL
+  SUPPLY
+}
+
+enum ProcessStatus {
+  ACTIVE
+  COMPLETED
+  OVERDUE
+  AT_RISK
+}
+
+enum StageKey {
+  R
+  I
+  D
+  E
+  C
+}
+
+enum MaintenanceType {
+  PREVENTIVE
+  CORRECTIVE
+  EMERGENCY
+}
+
+enum AIInsightType {
+  PREDICTION
+  ANOMALY
+  RECOMMENDATION
+}
+
+//modelo principal da exec, amanha monta o resto relacionado
+model Process {
+  id                      String        @id @default(uuid())
+  title                   String
+  type                    ProcessType
+  vehicleId               String?
+  currentStage            StageKey
+  status                  ProcessStatus @default(ACTIVE)
+  createdAt               DateTime      @default(now())
+  updatedAt               DateTime      @updatedAt
+  predictedCompletionTime DateTime?
+  riskScore               Float?
+
+  stages     ProcessStage[]
+  events     ProcessEvent[]
+  aiInsights AIInsight[]
+  alerts     Alerts[]
+
+  @@map("processes")
+}
+
+model Alerts {
+  id           String   @id @default(uuid())
+  processId    String
+  alertMessage String
+  alertLevel   Int
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  process Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@map("process_alerts")
+}
+
+model ProcessStage {
+  id        String    @id @default(uuid())
+  processId String
+  stageKey  StageKey
+  startTime DateTime?
+  endTime   DateTime?
+  sla       Int
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  process Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@unique([processId, stageKey])
+  @@map("process_stages")
+}
+
+model ProcessEvent {
+  id        String   @id @default(uuid())
+  processId String
+  event     String
+  data      Json
+  timestamp DateTime @default(now())
+
+  process Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@map("process_events")
+}
+
+model AIInsight {
+  id         String        @id @default(uuid())
+  processId  String
+  type       AIInsightType
+  confidence Float
+  message    String
+  timestamp  DateTime      @default(now())
+
+  process Process @relation(fields: [processId], references: [id], onDelete: Cascade)
+
+  @@map("ai_insights")
+}
