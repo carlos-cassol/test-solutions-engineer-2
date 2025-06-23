@@ -224,4 +224,4 @@ OPENAI_API_KEY="your_openai_api_key"
 - Advanced analytics dashboard
 - Machine learning model training
 - Integration with external monitoring tools
-- Export to excel (Being able to configure the file)
+- Export to excel (Being able to configure the file online and export it later)

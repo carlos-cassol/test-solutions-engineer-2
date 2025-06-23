@@ -90,7 +90,7 @@ export class ProcessesService {
 				});
 			}
 
-			return process;
+			return process as any;
 		} catch (error) {
 			throw new Error(`Error finding/creating process: ${error.message}`);
 		}
@@ -99,15 +99,15 @@ export class ProcessesService {
 	private mapEventToStage(event: string): StageKey {
 		switch (event) {
 			case 'maintenance.created':
-				return 'R';
+				return StageKey.R;
 			case 'maintenance.identified':
-				return 'I';
+				return StageKey.I;
 			case 'maintenance.approved':
-				return 'D';
+				return StageKey.D;
 			case 'maintenance.executing':
-				return 'E';
+				return StageKey.E;
 			case 'maintenance.completed':
-				return 'C';
+				return StageKey.C;
 			default:
 				throw new Error(`Unsupported event: ${event}`);
 		}
@@ -136,7 +136,13 @@ export class ProcessesService {
 				});
 			}
 
-			const stageOrder: StageKey[] = ['R', 'I', 'D', 'E', 'C'];
+			const stageOrder: StageKey[] = [
+				StageKey.R,
+				StageKey.I,
+				StageKey.D,
+				StageKey.E,
+				StageKey.C,
+			];
 			const currentIndex = stageOrder.indexOf(process.currentStage);
 			const targetIndex = stageOrder.indexOf(targetStage);
 
@@ -301,10 +307,10 @@ export class ProcessesService {
 		  })
 		| null
 	> {
-		return await this.prisma.process.findUnique({
+		return (await this.prisma.process.findUnique({
 			where: { id },
 			include: { stages: true, events: true, alerts: true, aiInsights: true },
-		});
+		})) as any;
 	}
 
 	async getAllProcesses(): Promise<
@@ -315,9 +321,9 @@ export class ProcessesService {
 			alerts: any[];
 		})[]
 	> {
-		return await this.prisma.process.findMany({
+		return (await this.prisma.process.findMany({
 			include: { stages: true, events: true, alerts: true, aiInsights: true },
 			orderBy: { createdAt: 'desc' },
-		});
+		})) as any;
 	}
 }
