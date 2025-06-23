@@ -10,7 +10,7 @@ Test Radar is a comprehensive process monitoring system that tracks operational 
 | `backend`           | NestJS API with Prisma ORM                     | 3000  |
 | `frontend`          | React TypeScript Dashboard                     | 3001  |
 
-**Communication:** RESTful API between frontend and backend, with WebSocket support for real-time updates.
+**Communication:** RESTful API between frontend and backend.
 
 ---
 
@@ -222,6 +222,7 @@ OPENAI_API_KEY="your_openai_api_key"
 ### Planned Features
 - Implement other 2 kinds of hooks
 - Advanced analytics dashboard
+- Implement websocket for live updates
 - Machine learning model training
 - Integration with external monitoring tools
 - Export to excel (Being able to configure the file online and export it later)
