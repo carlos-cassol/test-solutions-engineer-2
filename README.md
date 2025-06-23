@@ -1,147 +1,227 @@
-# BILLOR Test - Technical Brief for Developers
+# Test Radar - Process Monitoring & AI Insights System
 
-## Project Overview
+## 1. System Overview
 
-**Test Radar** is a real-time monitoring system for operational processes in a logistics/transportation company. The goal is to create a "Control Tower" that tracks all company processes through webhooks and intelligent alerts.
+Test Radar is a comprehensive process monitoring system that tracks operational processes using the RIDEC model (Request, Identify, Decide, Execute, Complete). The system provides real-time monitoring, SLA tracking, AI-powered insights, and automated alerting for process optimization.
 
-## Technical Architecture
+### Architecture
+| Component           | Description                                    | Port  |
+|---------------------|------------------------------------------------|-------|
+| `backend`           | NestJS API with Prisma ORM                     | 3000  |
+| `frontend`          | React TypeScript Dashboard                     | 3001  |
 
-### Preferred Stack (Google/Open Source)
-- **Backend**: NestJs
-- **Database**: PostgreSQL + Redis (a plus)
-- **Frontend**: Your Choice
-- **Infrastructure**: Docker
-
-### Core Components
-1. **Webhook Ingestion Engine** - Receives events from external systems  
-2. **RIDEC Processor** - Maps events to process stages (R→I→D→E→C)  
-3. **SLA Monitor** - Controls deadlines and calculates metrics  
-4. **Alert Engine** - Intelligent notification system with AI predictions  
-5. **Real-time Dashboard** - Web interface with charts and metrics  
-6. **AI Assistant** - Smart recommendations and anomaly detection  
-
-## RIDEC Framework
-
-All processes follow the **RIDEC** pattern:
-- **R**eceive: Initial input/request  
-- **I**dentify: Analysis and diagnosis  
-- **D**ecide: Approval/direction  
-- **E**xecute: Action implementation  
-- **C**onclude: Closure and registration  
-
-Each stage has specific SLA and generates alerts when approaching deadline.
-
-## AI Integration Opportunities
-
-### 1. **Predictive Analytics**
-- Predict SLA violations before they happen  
-- Identify bottleneck patterns  
-- Forecast resource needs  
-
-### 2. **Intelligent Alerting**
-- Smart alert prioritization (reduce noise)  
-- Context-aware notifications  
-- Auto-escalation optimization  
-
-### 3. **Process Optimization**
-- Suggest process improvements  
-- Detect anomalies in workflows  
-- Resource allocation recommendations  
+**Communication:** RESTful API between frontend and backend.
 
 ---
 
-## TECHNICAL CHALLENGE SPECIFICATION
+## 2. Backend Services
 
-### **Challenge Objective**
-Create a **simplified MVP** of Test Radar demonstrating core concepts with NestJs, process and AI integration.
+**Location:** `backend/`
 
----
+### Core Services
+- **ProcessesService**: Manages process lifecycle and RIDEC stage transitions
+- **AlertsService**: Handles alert generation and management
+- **AiService**: Provides AI-powered insights and predictions
+- **WebhooksService**: Processes external system integrations
+- **EventService**: Logs and tracks process events
 
-## **Part 1: Backend (Webhook + Processing + AI)**
-
-### Core API Requirements:
-1. **Webhook Endpoint** (`POST /webhooks/maintenance`)  
-   - Receive simulated maintenance events  
-   - Validate payload structure  
-   - Process events through RIDEC pipeline  
-
-2. **RIDEC Engine**  
-   - Map events to stages (R→I→D→E→C)  
-   - Control SLA for each stage  
-   - Calculate time consumption percentage  
-
-3. **Alert System with AI**  
-   - Generate alerts when SLA > 80%  
-   - **AI Feature**: Predict potential delays
-   - Auto-escalation when SLA > 100%  
-   - Structured logging of all events  
-
-4. **AI Integration** (Choose ONE):  
-   - **Option A**: Simple anomaly detection  
-   - **Option B**: Basic prediction model  
-   - **Option C**: Smart alert scoring  
+### Features
+- RIDEC process model implementation
+- SLA monitoring and breach detection
+- AI-powered risk assessment and predictions
+- Real-time alerting system
+- Webhook integration for external systems
+- Comprehensive event logging
+- Prisma ORM with PostgreSQL
 
 ---
 
-##**Part 2: Frontend (Dashboard + AI Insights)**
+## 3. Frontend Dashboard
 
-### Dashboard Requirements:
-1. **Main Dashboard**
-   - List active processes  
-   - Visual status (traffic light)  
-   - Basic metrics  
-   - **AI Insight Panel**  
+**Location:** `frontend/`
 
-2. **Process Visualization**
-   - RIDEC timeline  
-   - Elapsed time vs SLA  
-   - Event history  
-   - **AI Feature**: Predicted completion time  
+### Components
+- **Dashboard**: Overview of all processes and key metrics
+- **ProcessDetails**: Detailed view of individual processes
+- **AlertsPanel**: Real-time alert management
+- **AIInsights**: AI-generated insights and recommendations
+- **WebhookTester**: Test webhook integrations.
 
-3. **Alerts & AI**
-   - Active alerts list  
-   - Real-time notifications  
-   - **AI Priority Score**  
+### Features
+- Real-time process monitoring
+- Interactive charts and visualizations
+- Alert management interface
+- AI insights display
+- Webhook testing tools
+- Responsive design
 
 ---
 
-## **Suggested Data Structure**
+## 4. Database Schema
 
-```typescript
-interface Process {
-  id: string;
-  title: string;
-  type: 'maintenance' | 'financial' | 'supply';
-  vehicleId?: string;
-  currentStage: 'R' | 'I' | 'D' | 'E' | 'C';
-  status: 'active' | 'completed' | 'overdue' | 'at_risk';
-  createdAt: Date;
-  predictedCompletionTime?: Date;
-  riskScore?: number;
-  stages: {
-    R: { startTime?: Date; endTime?: Date; sla: number; };
-    I: { startTime?: Date; endTime?: Date; sla: number; };
-    D: { startTime?: Date; endTime?: Date; sla: number; };
-    E: { startTime?: Date; endTime?: Date; sla: number; };
-    C: { startTime?: Date; endTime?: Date; sla: number; };
-  };
+**Used:** PostgreSQL + Prisma ORM
+
+### Core Tables
+- `process` - Main process records
+- `processStage` - RIDEC stage tracking
+- `alerts` - Alert management
+- `processEvent` - Event logging
+- `aiInsight` - AI-generated insights
+
+### Connection
+Defined in `backend/.env`:
+```env
+DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
+```
+---
+
+## 5. Environment Configuration
+
+Only backend requires a `.env` file at its root for configuration.
+
+### `backend/.env`
+```env
+# Database
+DATABASE_URL="postgresql://username:password@localhost:5432/database_name"
+
+# OpenAI API Key (for AI insights)
+OPENAI_API_KEY="your_openai_api_key"
+```
+
+### Folder Structure
+```
+├── backend/
+│   ├── src/
+│   ├── prisma/
+│   ├── .env
+│   ├── package.json
+│   └── ...
+├── frontend/
+│   ├── src/
+│   ├── public/
+│   ├── .env
+│   ├── package.json
+│   └── ...
+└── README.md
+```
+
+---
+
+## 6. Setup Instructions
+
+```bash
+# Clone the repository
+git clone https://github.com/carlos-cassol/test-solutions-engineer-2.git
+cd test-solutions-engineer-2
+
+# Using docker {
+    #Build and start
+    docker-compose up --build -d
 }
 
-interface AIInsight {
-  type: 'prediction' | 'anomaly' | 'recommendation';
-  confidence: number;
-  message: string;
-  processId: string;
-  timestamp: Date;
-}
+#Without docker{
+    # Backend Setup
+    cd backend
+    npm install
+    npx prisma migrate dev
+    npm run start
 
-interface MaintenanceWebhook {
-  event: 'maintenance.created' | 'maintenance.identified' | 'maintenance.approved' | 'maintenance.completed';
-  data: {
-    processId: string;
-    vehicleId: string;
-    type: 'preventive' | 'corrective' | 'emergency';
-    timestamp: string;
-    metadata?: any;
-  };
+    # Frontend Setup (in a new terminal)
+    cd ../frontend
+    npm install
+    npm start
 }
+```
+### Access http://localhost:3001 to open the frontend app
+### Prerequisites
+- Node.js 18+ 
+- PostgreSQL 14+
+- OpenAI API key (for AI features)
+
+---
+
+## 7. Run Tests
+ - Access backend folder and execute in terminal:
+ ```bash
+    npm test
+```
+
+## 8. API Endpoints
+
+### Processes
+- `GET /processes` - Get all processes
+- `GET /processes/:id` - Get process by ID
+- `POST /processes/test-webhook` - Test webhook processing
+- `GET /processes/:id/alerts` - Get process alerts
+- `GET /processes/:id/events` - Get process events
+
+### Webhooks
+- `POST /webhooks/maintenance` - Process maintenance webhooks
+- `POST /webhooks/financial` - Process financial webhooks
+- `POST /webhooks/supply` - Process supply webhooks
+
+### Try out the swagger
+* Make sure that the backend is running!
+- http://localhost:3000/api
+---
+
+## Request example
+
+```json
+{
+  "event": "maintenance.created", (maintenance.created' | 'maintenance.identified' | 'maintenance.approved' | 'maintenance.completed)
+  "data": {
+    "processId": "fd3be649-afbc-4abe-8507-572baaa83dc0", (Or empty. If not found, create new process)
+    "vehicleId": "VEH001",
+    "maintenanceType": "preventive", ('preventive' | 'corrective' | 'emergency')
+    "timestamp": "2024-01-15T10:30:00Z",
+    "metadata": {
+      "priority": "high",
+      "location": "garage_a",
+      "hello": "world"
+    }
+  }
+}
+```
+
+## 9. Process Lifecycle (RIDEC Model)
+
+### Stages
+1. **R (Request)**: Process initiation and request handling
+2. **I (Identify)**: Problem identification and analysis
+3. **D (Decide)**: Decision making and approval
+4. **E (Execute)**: Implementation and execution
+5. **C (Complete)**: Completion and closure
+
+### SLA Monitoring
+- Each stage has SLA time limits
+- Automatic breach detection and alerting
+- Risk score calculation based on SLA compliance
+- AI-powered completion time predictions
+
+---
+
+## 10. AI Integration
+
+### Features
+- **Risk Assessment**: Calculates process risk scores
+- **Completion Prediction**: Predicts process completion times
+- **Anomaly Detection**: Identifies unusual process patterns
+- **Recommendations**: Provides optimization suggestions
+
+### Configuration
+AI insights require OpenAI API key configuration in `backend/.env`:
+```env
+OPENAI_API_KEY="your_openai_api_key"
+```
+---
+
+## 11. Future Enhancements
+
+### Planned Features
+- Implement other 2 kinds of hooks
+- Advanced analytics dashboard
+- Implement websocket for live updates
+- Machine learning model training
+- Integration with external monitoring tools
+- Export to excel (Being able to configure the file online and export it later)
