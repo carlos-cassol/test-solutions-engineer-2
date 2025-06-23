@@ -1,12 +1,12 @@
 import { Injectable } from '@nestjs/common';
-import { MaintenanceWebhook } from 'src/webhooks/dto/maintenance-status.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { MaintenanceWebhook } from '../webhooks/dto/maintenance-status.dto';
+import { PrismaService } from '../prisma/prisma.service';
 import { Process, ProcessStage, StageKey } from 'generated/prisma';
 import { SLA_CONFIG } from './constants/processes.constants';
 import { ConfigService } from '@nestjs/config';
-import { AiService } from 'src/AI/ai.service';
-import { EventService } from 'src/event/event.service';
-import { AlertsService } from 'src/alerts/alerts.service';
+import { AiService } from '../AI/ai.service';
+import { EventService } from '../event/event.service';
+import { AlertsService } from '../alerts/alerts.service';
 import { v4 as uuidv4 } from 'uuid';
 
 @Injectable()
@@ -23,7 +23,6 @@ export class ProcessesService {
 		try {
 			const process = await this.findOrCreateProcess(dto);
 
-			// 1. Registrar evento de webhook recebido
 			await this.eventService.logEvent(process.id, 'webhook.received', {
 				event: dto.event,
 				vehicleId: dto.data.vehicleId,
@@ -31,21 +30,16 @@ export class ProcessesService {
 				webhookData: dto.data,
 			});
 
-			// 2. Mapear evento para estágio
 			const targetStage = this.mapEventToStage(dto.event);
 
-			// 3. Atualizar estágios
 			await this.updateStages(process, targetStage);
 
 			if (process.currentStage !== StageKey.R) {
-				// 4. Calcular SLA e alertas
 				await this.calculateSLAAndAlerts(process);
 
-				// 5. Executar IA (pendente)
 				await this.aiService.executeAI(process);
 			}
 
-			// 6. Retornar processo atualizado
 			return await this.getProcessById(process.id);
 		} catch (error) {
 			throw new Error(`Error processing maintenance event: ${error.message}`);
@@ -54,15 +48,13 @@ export class ProcessesService {
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	async processFinancialEvent(_dto: any) {
-		// TODO: Implement financial event processing
-		await Promise.resolve(); // Placeholder for future implementation
+		await Promise.resolve();
 		return null;
 	}
 
 	// eslint-disable-next-line @typescript-eslint/no-unused-vars
 	async processSupplyEvent(_dto: any) {
-		// TODO: Implement supply event processing
-		await Promise.resolve(); // Placeholder for future implementation
+		await Promise.resolve();
 		return null;
 	}
 
@@ -135,7 +127,6 @@ export class ProcessesService {
 					data: { endTime: new Date() },
 				});
 
-				// Registrar evento de estágio finalizado
 				await this.eventService.logEvent(process.id, 'stage.completed', {
 					stage: process.currentStage,
 					startTime: currentStage.startTime,
@@ -145,7 +136,6 @@ export class ProcessesService {
 				});
 			}
 
-			// 2. Criar estágios que faltam até o targetStage
 			const stageOrder: StageKey[] = ['R', 'I', 'D', 'E', 'C'];
 			const currentIndex = stageOrder.indexOf(process.currentStage);
 			const targetIndex = stageOrder.indexOf(targetStage);
@@ -161,12 +151,11 @@ export class ProcessesService {
 						data: {
 							processId: process.id,
 							stageKey: stageKey,
-							startTime: i === targetIndex ? new Date() : null, // Só inicia o último
+							startTime: i === targetIndex ? new Date() : null,
 							sla: this.getSLAForStage(stageKey),
 						},
 					});
 
-					// Gerar alerta para processo inconsistente
 					if (i < targetIndex) {
 						await this.alertsService.createAlert({
 							processId: process.id,
@@ -184,7 +173,6 @@ export class ProcessesService {
 				}
 			}
 
-			// 3. Iniciar o targetStage se não estiver iniciado
 			const targetStageRecord = await this.prisma.processStage.findFirst({
 				where: { processId: process.id, stageKey: targetStage },
 			});
@@ -202,7 +190,6 @@ export class ProcessesService {
 				});
 			}
 
-			// 4. Atualizar currentStage no processo
 			await this.prisma.process.update({
 				where: { id: process.id },
 				data: { currentStage: targetStage },
@@ -228,7 +215,6 @@ export class ProcessesService {
 		process: Process & { stages: ProcessStage[] },
 	): Promise<void> {
 		try {
-			// Buscar processo atualizado com estágios
 			const updatedProcess = await this.prisma.process.findUnique({
 				where: { id: process.id },
 				include: { stages: true },
@@ -236,7 +222,6 @@ export class ProcessesService {
 
 			if (!updatedProcess) return;
 
-			// Calcular SLA apenas do estágio atual
 			const currentStage = updatedProcess.stages.find(
 				(s) => s.stageKey === updatedProcess.currentStage,
 			);
@@ -245,28 +230,23 @@ export class ProcessesService {
 
 			const now = new Date();
 			const elapsedTime =
-				(now.getTime() - currentStage.startTime.getTime()) / 1000; // em segundos
+				(now.getTime() - currentStage.startTime.getTime()) / 1000;
 			const slaPercentage = (elapsedTime / currentStage.sla) * 100;
 
-			// Determinar novo status baseado no SLA
 			let newStatus = updatedProcess.status;
 			let alertLevel = 0;
 			let alertMessage = '';
 
 			if (slaPercentage > 100) {
-				// OVERDUE: SLA > 100%
 				newStatus = 'OVERDUE';
 				alertLevel = 4;
 				alertMessage = `Process overdue: ${slaPercentage.toFixed(1)}% of SLA exceeded in stage ${updatedProcess.currentStage}`;
 			} else if (slaPercentage > 80) {
-				// AT_RISK: SLA > 80%
 				newStatus = 'AT_RISK';
 				alertLevel = 3;
 				alertMessage = `Process at risk: ${slaPercentage.toFixed(1)}% of SLA consumed in stage ${updatedProcess.currentStage}`;
 			} else {
-				// ACTIVE: SLA <= 80% (recuperação automática)
 				newStatus = 'ACTIVE';
-				// Só gera alerta se estava em estado crítico antes
 				if (
 					updatedProcess.status === 'OVERDUE' ||
 					updatedProcess.status === 'AT_RISK'
@@ -276,7 +256,6 @@ export class ProcessesService {
 				}
 			}
 
-			// Atualizar status do processo se mudou
 			if (newStatus !== updatedProcess.status) {
 				await this.prisma.process.update({
 					where: { id: process.id },
@@ -284,7 +263,6 @@ export class ProcessesService {
 				});
 			}
 
-			// Gerar alerta se necessário
 			if (alertLevel > 0) {
 				const alert = await this.alertsService.createAlert({
 					processId: process.id,
@@ -301,7 +279,6 @@ export class ProcessesService {
 				});
 			}
 
-			// Registrar evento de mudança de status
 			if (newStatus !== updatedProcess.status) {
 				await this.eventService.logEvent(process.id, 'status.changed', {
 					oldStatus: updatedProcess.status,

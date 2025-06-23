@@ -15,7 +15,6 @@ export class AiService {
 
 	public async executeAI(process: Process): Promise<void> {
 		try {
-			// Buscar dados completos do processo para análise
 			const processData = await this.prisma.process.findUnique({
 				where: { id: process.id },
 				include: {
@@ -28,15 +27,12 @@ export class AiService {
 
 			if (!processData) return;
 
-			// Criar prompt para análise do processo
 			const prompt = this.createProcessAnalysisPrompt(processData);
 
-			// Configurar OpenAI
 			const openai = new OpenAI({
 				apiKey: this.configService.get<string>('OPENAI_API_KEY'),
 			});
 
-			// Tentar gerar insight com retry
 			const maxAttempts = 3;
 			let insight: any = null;
 
@@ -62,7 +58,6 @@ export class AiService {
 				}
 			}
 
-			// Se falhou, usar insight padrão
 			if (!insight) {
 				insight = {
 					type: 'PREDICTION',
@@ -72,7 +67,6 @@ export class AiService {
 				};
 			}
 
-			// Criar insight no banco
 			const aiInsight = await this.prisma.aIInsight.create({
 				data: {
 					processId: process.id,
@@ -82,13 +76,10 @@ export class AiService {
 				},
 			});
 
-			// Calcular riskScore baseado nos dados
 			const riskScore = this.calculateRiskScore(processData);
 
-			// Calcular predictedCompletionTime
 			const predictedTime = this.calculatePredictedCompletionTime(processData);
 
-			// Atualizar processo com dados de IA
 			await this.prisma.process.update({
 				where: { id: process.id },
 				data: {
@@ -97,7 +88,6 @@ export class AiService {
 				},
 			});
 
-			// Registrar eventos
 			await this.eventService.logEvent(process.id, 'ai.insight.generated', {
 				insightId: aiInsight.id,
 				insightType: aiInsight.type,
@@ -181,7 +171,6 @@ export class AiService {
 
 	private parseAIResponse(content: string): any {
 		try {
-			// Tentar extrair JSON da resposta
 			const jsonMatch = content.match(/\{[\s\S]*\}/);
 			if (jsonMatch) {
 				const parsed = JSON.parse(jsonMatch[0]);
@@ -192,7 +181,6 @@ export class AiService {
 				};
 			}
 
-			// Se não conseguir extrair JSON, usar a resposta completa
 			return {
 				type: 'PREDICTION',
 				confidence: 0.7,
@@ -208,19 +196,16 @@ export class AiService {
 	}
 
 	private calculateRiskScore(processData: any): number {
-		let riskScore = 0.1; // Base risk
+		let riskScore = 0.1;
 
-		// Aumentar risco baseado no status
 		if (processData.status === 'OVERDUE') riskScore += 0.4;
 		else if (processData.status === 'AT_RISK') riskScore += 0.2;
 
-		// Aumentar risco baseado nos alertas
 		const criticalAlerts = processData.alerts.filter(
 			(a: any) => a.alertLevel >= 3,
 		);
 		riskScore += criticalAlerts.length * 0.1;
 
-		// Aumentar risco baseado no tempo no estágio atual
 		const currentStage = processData.stages.find(
 			(s: any) => s.stageKey === processData.currentStage,
 		);
@@ -231,7 +216,7 @@ export class AiService {
 			if (slaPercentage > 80) riskScore += 0.2;
 		}
 
-		return Math.min(riskScore, 1.0); // Máximo 1.0
+		return Math.min(riskScore, 1.0);
 	}
 
 	private calculatePredictedCompletionTime(processData: any): Date {
@@ -241,15 +226,13 @@ export class AiService {
 		);
 
 		if (!currentStage || !currentStage.startTime) {
-			return new Date(now.getTime() + 2 * 60 * 60 * 1000); // +2 horas padrão
+			return new Date(now.getTime() + 2 * 60 * 60 * 1000);
 		}
 
-		// Calcular tempo restante baseado no SLA
 		const elapsed =
 			(now.getTime() - new Date(currentStage.startTime).getTime()) / 1000;
 		const remainingInCurrentStage = Math.max(0, currentStage.sla - elapsed);
 
-		// Calcular tempo dos estágios restantes
 		const stageOrder = ['R', 'I', 'D', 'E', 'C'];
 		const currentIndex = stageOrder.indexOf(processData.currentStage);
 		const remainingStages = stageOrder.slice(currentIndex + 1);
@@ -264,7 +247,6 @@ export class AiService {
 			}
 		});
 
-		// Ajustar baseado no riskScore
 		const riskMultiplier = processData.riskScore
 			? 1 + processData.riskScore
 			: 1.2;

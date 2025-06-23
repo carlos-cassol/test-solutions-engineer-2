@@ -3,7 +3,7 @@ import { ProcessStatus, ProcessType, StageKey } from '../enums/process.enum';
 export class StageInfo {
 	startTime?: Date;
 	endTime?: Date;
-	sla: number; // em segundos
+	sla: number;
 }
 
 export class ProcessEntity {

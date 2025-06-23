@@ -28,7 +28,6 @@ describe('Webhooks (e2e)', () => {
 	});
 
 	beforeEach(async () => {
-		// Clean up database before each test
 		await prismaService.processEvent.deleteMany();
 		await prismaService.aIInsight.deleteMany();
 		await prismaService.alerts.deleteMany();
@@ -96,7 +95,6 @@ describe('Webhooks (e2e)', () => {
 					});
 			}
 
-			// Verify final status
 			const finalProcess = await prismaService.process.findUnique({
 				where: { id: testProcessId },
 			});
@@ -141,7 +139,6 @@ describe('Webhooks (e2e)', () => {
 				data: {
 					processId: testProcessId,
 					vehicleId: testVehicleId,
-					// Missing required fields
 				},
 			};
 

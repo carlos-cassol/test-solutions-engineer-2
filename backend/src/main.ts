@@ -5,7 +5,6 @@ import { AppModule } from './app/app.module';
 async function bootstrap() {
 	const app = await NestFactory.create(AppModule);
 
-	// Configuração de CORS
 	app.enableCors({
 		origin: ['http://localhost:3001', 'http://localhost:3000'],
 		methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],
@@ -13,7 +12,6 @@ async function bootstrap() {
 		credentials: true,
 	});
 
-	// Configuração do Swagger
 	const config = new DocumentBuilder()
 		.setTitle('Test Radar API')
 		.setDescription(

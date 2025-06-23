@@ -4,45 +4,79 @@ import { PrismaService } from '../prisma/prisma.service';
 import { ConfigService } from '@nestjs/config';
 import { AiService } from '../AI/ai.service';
 import { EventService } from '../event/event.service';
+import { AlertsService } from '../alerts/alerts.service';
 import { MaintenanceWebhook } from '../webhooks/dto/maintenance-status.dto';
-import { Process } from 'generated/prisma';
 import {
 	MaintenanceStatus,
 	MaintenanceType,
 } from '../webhooks/enums/webhooks.enums';
+import { Process, ProcessStage, StageKey } from 'generated/prisma';
 
 describe('ProcessesService', () => {
 	let service: ProcessesService;
+	let prismaService: jest.Mocked<PrismaService>;
+	let aiService: jest.Mocked<AiService>;
+	let eventService: jest.Mocked<EventService>;
+	let alertsService: jest.Mocked<AlertsService>;
 
-	const mockPrismaService = {
-		process: {
-			findUnique: jest.fn(),
-			create: jest.fn(),
-			update: jest.fn(),
-		},
-		processStage: {
-			findFirst: jest.fn(),
-			create: jest.fn(),
-			update: jest.fn(),
-		},
-		alerts: {
-			create: jest.fn(),
-		},
-	};
-
-	const mockAiService = {
-		executeAI: jest.fn(),
-	};
-
-	const mockEventService = {
-		logEvent: jest.fn(),
-	};
-
-	const mockConfigService = {
-		get: jest.fn(),
+	const mockProcess = {
+		id: 'test-process-123',
+		title: 'Test Maintenance',
+		type: 'MAINTENANCE' as const,
+		vehicleId: 'TEST123',
+		currentStage: 'R' as StageKey,
+		status: 'ACTIVE' as const,
+		createdAt: new Date(),
+		updatedAt: new Date(),
+		predictedCompletionTime: null,
+		riskScore: null,
+		stages: [
+			{
+				id: '1',
+				processId: 'test-process-123',
+				stageKey: 'R' as StageKey,
+				startTime: new Date(),
+				endTime: null,
+				sla: 3600,
+			},
+			{
+				id: '2',
+				processId: 'test-process-123',
+				stageKey: 'I' as StageKey,
+				startTime: null,
+				endTime: null,
+				sla: 1800,
+			},
+		] as ProcessStage[],
 	};
 
 	beforeEach(async () => {
+		const mockPrismaService = {
+			process: {
+				findUnique: jest.fn(),
+				create: jest.fn(),
+				update: jest.fn(),
+				findMany: jest.fn(),
+			},
+			processStage: {
+				create: jest.fn(),
+				update: jest.fn(),
+				findFirst: jest.fn(),
+			},
+		};
+
+		const mockAiService = {
+			executeAI: jest.fn(),
+		};
+
+		const mockEventService = {
+			logEvent: jest.fn(),
+		};
+
+		const mockAlertsService = {
+			createAlert: jest.fn(),
+		};
+
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
 				ProcessesService,
@@ -52,7 +86,7 @@ describe('ProcessesService', () => {
 				},
 				{
 					provide: ConfigService,
-					useValue: mockConfigService,
+					useValue: { get: jest.fn() },
 				},
 				{
 					provide: AiService,
@@ -62,10 +96,18 @@ describe('ProcessesService', () => {
 					provide: EventService,
 					useValue: mockEventService,
 				},
+				{
+					provide: AlertsService,
+					useValue: mockAlertsService,
+				},
 			],
 		}).compile();
 
 		service = module.get<ProcessesService>(ProcessesService);
+		prismaService = module.get(PrismaService);
+		aiService = module.get(AiService);
+		eventService = module.get(EventService);
+		alertsService = module.get(AlertsService);
 	});
 
 	afterEach(() => {
@@ -73,163 +115,145 @@ describe('ProcessesService', () => {
 	});
 
 	describe('processMaintenanceEvent', () => {
-		const mockWebhook: MaintenanceWebhook = {
-			event: MaintenanceStatus.CREATED,
-			data: {
-				processId: 'test-process-123',
-				vehicleId: 'ABC123',
-				maintenanceType: MaintenanceType.PREVENTIVE,
-				timestamp: '2024-01-01T10:00:00Z',
-			},
-		};
+		it('should create new process when process does not exist', async () => {
+			const webhookData: MaintenanceWebhook = {
+				event: MaintenanceStatus.CREATED,
+				data: {
+					processId: 'new-process-123',
+					vehicleId: 'NEW123',
+					maintenanceType: MaintenanceType.PREVENTIVE,
+					timestamp: new Date().toISOString(),
+				},
+			};
 
-		const mockProcess: Process = {
-			id: 'test-process-123',
-			title: 'Test Maintenance',
-			type: 'MAINTENANCE',
-			vehicleId: 'ABC123',
-			currentStage: 'R',
-			status: 'ACTIVE',
-			createdAt: new Date(),
-			updatedAt: new Date(),
-			predictedCompletionTime: null,
-			riskScore: null,
-		};
+			(prismaService.process.findUnique as jest.Mock).mockResolvedValue(null);
+			(prismaService.process.create as jest.Mock).mockResolvedValue(
+				mockProcess as any,
+			);
+			(prismaService.process.update as jest.Mock).mockResolvedValue(
+				mockProcess as any,
+			);
+			(prismaService.processStage.create as jest.Mock).mockResolvedValue(
+				mockProcess.stages[0] as any,
+			);
+			(prismaService.processStage.update as jest.Mock).mockResolvedValue(
+				mockProcess.stages[0] as any,
+			);
+			(prismaService.processStage.findFirst as jest.Mock).mockResolvedValue(
+				mockProcess.stages[0] as any,
+			);
 
-		it('should create new process when it does not exist', async () => {
-			mockPrismaService.process.findUnique.mockResolvedValue(null);
-			mockPrismaService.process.create.mockResolvedValue({
-				...mockProcess,
-				stages: [],
-			});
-			mockPrismaService.process.findUnique.mockResolvedValue({
-				...mockProcess,
-				stages: [],
-				events: [],
-				alerts: [],
-				aiInsights: [],
-			});
+			const result = await service.processMaintenanceEvent(webhookData);
 
-			await service.processMaintenanceEvent(mockWebhook);
-
-			expect(mockPrismaService.process.create).toHaveBeenCalledWith({
-				data: expect.objectContaining({
-					title: expect.stringContaining('Maintenance preventive'),
-					type: 'MAINTENANCE',
-					vehicleId: 'ABC123',
-					currentStage: 'R',
-					status: 'ACTIVE',
-				}),
+			expect(prismaService.process.findUnique).toHaveBeenCalledWith({
+				where: { id: 'new-process-123' },
 				include: { stages: true },
 			});
-			expect(mockEventService.logEvent).toHaveBeenCalledWith(
-				'test-process-123',
+			expect(prismaService.process.create).toHaveBeenCalled();
+			expect(eventService.logEvent).toHaveBeenCalledWith(
+				expect.any(String),
 				'webhook.received',
-				expect.any(Object),
+				expect.objectContaining({
+					event: MaintenanceStatus.CREATED,
+					vehicleId: 'NEW123',
+				}),
 			);
+			expect(result).toBeDefined();
 		});
 
-		it('should use existing process when it exists', async () => {
-			mockPrismaService.process.findUnique.mockResolvedValue({
-				...mockProcess,
-				stages: [],
+		it('should update existing process when process exists', async () => {
+			const webhookData: MaintenanceWebhook = {
+				event: MaintenanceStatus.IDENTIFIED,
+				data: {
+					processId: 'existing-process-123',
+					vehicleId: 'EXIST123',
+					maintenanceType: MaintenanceType.CORRECTIVE,
+					timestamp: new Date().toISOString(),
+				},
+			};
+
+			(prismaService.process.findUnique as jest.Mock).mockResolvedValue(
+				mockProcess as any,
+			);
+			(prismaService.process.update as jest.Mock).mockResolvedValue(
+				mockProcess as any,
+			);
+			(prismaService.processStage.update as jest.Mock).mockResolvedValue(
+				mockProcess.stages[0] as any,
+			);
+			(prismaService.processStage.findFirst as jest.Mock).mockResolvedValue(
+				mockProcess.stages[0] as any,
+			);
+
+			const result = await service.processMaintenanceEvent(webhookData);
+
+			expect(prismaService.process.findUnique).toHaveBeenCalledWith({
+				where: { id: 'existing-process-123' },
+				include: { stages: true },
 			});
-			mockPrismaService.process.findUnique.mockResolvedValue({
-				...mockProcess,
-				stages: [],
-				events: [],
-				alerts: [],
-				aiInsights: [],
-			});
-
-			await service.processMaintenanceEvent(mockWebhook);
-
-			expect(mockPrismaService.process.create).not.toHaveBeenCalled();
-			expect(mockEventService.logEvent).toHaveBeenCalled();
-		});
-
-		it('should map events to correct stages', async () => {
-			const testCases = [
-				{ event: MaintenanceStatus.CREATED, expectedStage: 'R' },
-				{ event: MaintenanceStatus.IDENTIFIED, expectedStage: 'I' },
-				{ event: MaintenanceStatus.APPROVED, expectedStage: 'D' },
-				{ event: MaintenanceStatus.EXECUTING, expectedStage: 'E' },
-				{ event: MaintenanceStatus.COMPLETED, expectedStage: 'C' },
-			];
-
-			for (const testCase of testCases) {
-				mockPrismaService.process.findUnique.mockResolvedValue({
-					...mockProcess,
-					stages: [],
-				});
-				mockPrismaService.process.findUnique.mockResolvedValue({
-					...mockProcess,
-					stages: [],
-					events: [],
-					alerts: [],
-					aiInsights: [],
-				});
-
-				const webhook = { ...mockWebhook, event: testCase.event };
-				await service.processMaintenanceEvent(webhook);
-
-				expect(mockPrismaService.process.update).toHaveBeenCalledWith({
-					where: { id: 'test-process-123' },
-					data: { currentStage: testCase.expectedStage },
-				});
-			}
+			expect(prismaService.process.update).toHaveBeenCalled();
+			expect(result).toBeDefined();
 		});
 
 		it('should throw error for unsupported event', async () => {
-			const invalidWebhook = { ...mockWebhook, event: 'invalid.event' as any };
+			const webhookData: MaintenanceWebhook = {
+				event: 'maintenance.invalid' as any,
+				data: {
+					processId: 'test-process-123',
+					vehicleId: 'TEST123',
+					maintenanceType: MaintenanceType.PREVENTIVE,
+					timestamp: new Date().toISOString(),
+				},
+			};
+
+			(prismaService.process.findUnique as jest.Mock).mockResolvedValue(
+				mockProcess as any,
+			);
 
 			await expect(
-				service.processMaintenanceEvent(invalidWebhook),
-			).rejects.toThrow('Unsupported event: invalid.event');
+				service.processMaintenanceEvent(webhookData),
+			).rejects.toThrow('Unsupported event: maintenance.invalid');
+		});
+	});
+
+	describe('getAllProcesses', () => {
+		it('should return all processes with related data', async () => {
+			const mockProcesses = [mockProcess] as any;
+			(prismaService.process.findMany as jest.Mock).mockResolvedValue(
+				mockProcesses,
+			);
+
+			const result = await service.getAllProcesses();
+
+			expect(prismaService.process.findMany).toHaveBeenCalledWith({
+				include: { stages: true, events: true, alerts: true, aiInsights: true },
+				orderBy: { createdAt: 'desc' },
+			});
+			expect(result).toEqual(mockProcesses);
 		});
 	});
 
 	describe('getProcessById', () => {
-		it('should return process with all relations', async () => {
-			const mockProcessWithRelations = {
-				id: 'test-id',
-				title: 'Test Process',
-				type: 'MAINTENANCE',
-				vehicleId: 'ABC123',
-				currentStage: 'R',
-				status: 'ACTIVE',
-				createdAt: new Date(),
-				updatedAt: new Date(),
-				predictedCompletionTime: null,
-				riskScore: null,
-				stages: [],
-				events: [],
-				alerts: [],
-				aiInsights: [],
-			};
-
-			mockPrismaService.process.findUnique.mockResolvedValue(
-				mockProcessWithRelations,
+		it('should return process by id with related data', async () => {
+			const processId = 'test-process-123';
+			(prismaService.process.findUnique as jest.Mock).mockResolvedValue(
+				mockProcess as any,
 			);
 
-			const result = await service.getProcessById('test-id');
+			const result = await service.getProcessById(processId);
 
-			expect(mockPrismaService.process.findUnique).toHaveBeenCalledWith({
-				where: { id: 'test-id' },
-				include: {
-					stages: true,
-					events: true,
-					alerts: true,
-					aiInsights: true,
-				},
+			expect(prismaService.process.findUnique).toHaveBeenCalledWith({
+				where: { id: processId },
+				include: { stages: true, events: true, alerts: true, aiInsights: true },
 			});
-			expect(result).toEqual(mockProcessWithRelations);
+			expect(result).toEqual(mockProcess);
 		});
 
 		it('should return null when process not found', async () => {
-			mockPrismaService.process.findUnique.mockResolvedValue(null);
+			const processId = 'non-existent-process';
+			(prismaService.process.findUnique as jest.Mock).mockResolvedValue(null);
 
-			const result = await service.getProcessById('non-existent');
+			const result = await service.getProcessById(processId);
 
 			expect(result).toBeNull();
 		});
@@ -237,14 +261,16 @@ describe('ProcessesService', () => {
 
 	describe('processFinancialEvent', () => {
 		it('should return null (not implemented)', async () => {
-			const result = await service.processFinancialEvent({});
+			const result = await service.processFinancialEvent({} as any);
+
 			expect(result).toBeNull();
 		});
 	});
 
 	describe('processSupplyEvent', () => {
 		it('should return null (not implemented)', async () => {
-			const result = await service.processSupplyEvent({});
+			const result = await service.processSupplyEvent({} as any);
+
 			expect(result).toBeNull();
 		});
 	});

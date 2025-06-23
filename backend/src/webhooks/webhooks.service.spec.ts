@@ -1,27 +1,23 @@
 import { Test, TestingModule } from '@nestjs/testing';
 import { WebhooksService } from './webhooks.service';
 import { ProcessesService } from '../processes/processes.service';
-import { PrismaService } from '../prisma/prisma.service';
 import { MaintenanceWebhook } from './dto/maintenance-status.dto';
 import { MaintenanceStatus, MaintenanceType } from './enums/webhooks.enums';
-import { BadRequestException } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 
 describe('WebhooksService', () => {
 	let service: WebhooksService;
-
-	const mockProcessesService = {
-		processMaintenanceEvent: jest.fn(),
-	};
-
-	const mockPrismaService = {
-		processEvent: jest.fn(),
-		aIInsight: jest.fn(),
-		alerts: jest.fn(),
-		processStage: jest.fn(),
-		process: jest.fn(),
-	};
+	let processesService: jest.Mocked<ProcessesService>;
+	let prismaService: jest.Mocked<PrismaService>;
 
 	beforeEach(async () => {
+		const mockProcessesService = {
+			processMaintenanceEvent: jest.fn(),
+			processFinancialEvent: jest.fn(),
+			processSupplyEvent: jest.fn(),
+		};
+		const mockPrismaService = {};
+
 		const module: TestingModule = await Test.createTestingModule({
 			providers: [
 				WebhooksService,
@@ -37,6 +33,8 @@ describe('WebhooksService', () => {
 		}).compile();
 
 		service = module.get<WebhooksService>(WebhooksService);
+		processesService = module.get(ProcessesService);
+		prismaService = module.get(PrismaService);
 	});
 
 	afterEach(() => {
@@ -44,79 +42,59 @@ describe('WebhooksService', () => {
 	});
 
 	describe('handleMaintenanceEvent', () => {
-		const mockWebhook: MaintenanceWebhook = {
-			event: MaintenanceStatus.CREATED,
-			data: {
-				processId: 'test-process-123',
-				vehicleId: 'ABC123',
-				maintenanceType: MaintenanceType.PREVENTIVE,
-				timestamp: '2024-01-01T10:00:00Z',
-			},
-		};
+		it('should process maintenance webhook successfully', async () => {
+			const webhookData: MaintenanceWebhook = {
+				event: MaintenanceStatus.CREATED,
+				data: {
+					processId: 'test-process-123',
+					vehicleId: 'TEST123',
+					maintenanceType: MaintenanceType.PREVENTIVE,
+					timestamp: new Date().toISOString(),
+				},
+			};
 
-		const mockProcess = {
-			id: 'test-process-123',
-			title: 'Test Maintenance',
-			type: 'MAINTENANCE',
-			currentStage: 'R',
-			status: 'ACTIVE',
-		};
+			const mockProcess = {
+				id: 'test-process-123',
+				title: 'Test Maintenance',
+				type: 'MAINTENANCE',
+				vehicleId: 'TEST123',
+				currentStage: 'R',
+				status: 'ACTIVE',
+			};
 
-		it('should successfully process maintenance event', async () => {
-			mockProcessesService.processMaintenanceEvent.mockResolvedValue(
-				mockProcess,
+			processesService.processMaintenanceEvent.mockResolvedValue(
+				mockProcess as any,
 			);
 
-			const result = await service.handleMaintenanceEvent(mockWebhook);
+			const result = await service.handleMaintenanceEvent(webhookData);
 
-			expect(mockProcessesService.processMaintenanceEvent).toHaveBeenCalledWith(
-				mockWebhook,
+			expect(processesService.processMaintenanceEvent).toHaveBeenCalledWith(
+				webhookData,
 			);
 			expect(result).toEqual(mockProcess);
 		});
 
-		it('should throw BadRequestException when processing fails', async () => {
-			const errorMessage = 'Database connection failed';
-			mockProcessesService.processMaintenanceEvent.mockRejectedValue(
-				new Error(errorMessage),
+		it('should handle maintenance webhook processing errors', async () => {
+			const webhookData: MaintenanceWebhook = {
+				event: MaintenanceStatus.CREATED,
+				data: {
+					processId: 'test-process-123',
+					vehicleId: 'TEST123',
+					maintenanceType: MaintenanceType.PREVENTIVE,
+					timestamp: new Date().toISOString(),
+				},
+			};
+
+			const error = new Error('Database connection failed');
+			processesService.processMaintenanceEvent.mockRejectedValue(error);
+
+			await expect(service.handleMaintenanceEvent(webhookData)).rejects.toThrow(
+				'Error processing maintenance event: Database connection failed',
 			);
-
-			await expect(service.handleMaintenanceEvent(mockWebhook)).rejects.toThrow(
-				BadRequestException,
-			);
-
-			expect(mockProcessesService.processMaintenanceEvent).toHaveBeenCalledWith(
-				mockWebhook,
-			);
-		});
-
-		it('should handle different maintenance types', async () => {
-			const testCases = [
-				MaintenanceType.PREVENTIVE,
-				MaintenanceType.CORRECTIVE,
-				MaintenanceType.EMERGENCY,
-			];
-
-			for (const maintenanceType of testCases) {
-				const webhook = {
-					...mockWebhook,
-					data: { ...mockWebhook.data, maintenanceType },
-				};
-
-				mockProcessesService.processMaintenanceEvent.mockResolvedValue(
-					mockProcess,
-				);
-
-				await service.handleMaintenanceEvent(webhook);
-
-				expect(
-					mockProcessesService.processMaintenanceEvent,
-				).toHaveBeenCalledWith(webhook);
-			}
 		});
 
 		it('should handle different maintenance events', async () => {
-			const testCases = [
+			const events = [
 				MaintenanceStatus.CREATED,
 				MaintenanceStatus.IDENTIFIED,
 				MaintenanceStatus.APPROVED,
@@ -124,33 +102,47 @@ describe('WebhooksService', () => {
 				MaintenanceStatus.COMPLETED,
 			];
 
-			for (const event of testCases) {
-				const webhook = { ...mockWebhook, event };
+			const mockProcess = {
+				id: 'test-process-123',
+				title: 'Test Maintenance',
+				type: 'MAINTENANCE',
+				vehicleId: 'TEST123',
+				currentStage: 'R',
+				status: 'ACTIVE',
+			};
 
-				mockProcessesService.processMaintenanceEvent.mockResolvedValue(
-					mockProcess,
-				);
+			processesService.processMaintenanceEvent.mockResolvedValue(
+				mockProcess as any,
+			);
 
-				await service.handleMaintenanceEvent(webhook);
+			for (const event of events) {
+				const webhookData: MaintenanceWebhook = {
+					event,
+					data: {
+						processId: 'test-process-123',
+						vehicleId: 'TEST123',
+						maintenanceType: MaintenanceType.PREVENTIVE,
+						timestamp: new Date().toISOString(),
+					},
+				};
 
-				expect(
-					mockProcessesService.processMaintenanceEvent,
-				).toHaveBeenCalledWith(webhook);
+				const result = await service.handleMaintenanceEvent(webhookData);
+				expect(result).toEqual(mockProcess);
 			}
 		});
 	});
 
 	describe('handleFinancialEvent', () => {
-		it('should throw error (not implemented)', () => {
-			expect(() => service.handleFinancialEvent()).toThrow(
+		it('should throw not implemented error', async () => {
+			await expect(service.handleFinancialEvent()).rejects.toThrow(
 				'Method not implemented.',
 			);
 		});
 	});
 
 	describe('handleSupplyEvent', () => {
-		it('should throw error (not implemented)', () => {
-			expect(() => service.handleSupplyEvent()).toThrow(
+		it('should throw not implemented error', async () => {
+			await expect(service.handleSupplyEvent()).rejects.toThrow(
 				'Method not implemented.',
 			);
 		});

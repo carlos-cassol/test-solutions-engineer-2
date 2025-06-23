@@ -13,25 +13,25 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({ total, active, atRisk, over
       label: 'Total',
       value: total,
       color: 'bg-blue-500',
-      icon: '📊'
+      text: 'T'
     },
     {
-      label: 'Ativos',
+      label: 'Active',
       value: active,
       color: 'bg-green-500',
-      icon: '✅'
+      text: 'A'
     },
     {
-      label: 'Em Risco',
+      label: 'At Risk',
       value: atRisk,
       color: 'bg-yellow-500',
-      icon: '⚠️'
+      text: 'R'
     },
     {
-      label: 'Vencidos',
+      label: 'Overdue',
       value: overdue,
       color: 'bg-red-500',
-      icon: '🚨'
+      text: 'O'
     }
   ];
 
@@ -40,8 +40,8 @@ const MetricsPanel: React.FC<MetricsPanelProps> = ({ total, active, atRisk, over
       {metrics.map((metric) => (
         <div key={metric.label} className="bg-white rounded-lg shadow p-6">
           <div className="flex items-center">
-            <div className={`w-12 h-12 ${metric.color} rounded-lg flex items-center justify-center text-white text-xl`}>
-              {metric.icon}
+            <div className={`w-12 h-12 ${metric.color} rounded-lg flex items-center justify-center text-white text-xl font-bold`}>
+              {metric.text}
             </div>
             <div className="ml-4">
               <p className="text-sm font-medium text-gray-600">{metric.label}</p>

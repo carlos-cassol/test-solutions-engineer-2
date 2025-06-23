@@ -1,5 +1,6 @@
 import React from 'react';
 import { Process } from '../types/Process';
+import TrafficLightIndicator from './TrafficLightIndicator';
 
 interface AlertsPanelProps {
   processes: Process[];
@@ -20,8 +21,8 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ processes }) => {
   if (allAlerts.length === 0) {
     return (
       <div className="bg-white rounded-lg shadow p-6">
-        <h3 className="text-lg font-semibold text-gray-900 mb-4">Alertas</h3>
-        <p className="text-gray-600 text-center py-4">Nenhum alerta ativo</p>
+        <h3 className="text-lg font-semibold text-gray-900 mb-4">Alerts</h3>
+        <p className="text-gray-600 text-center py-4">No active alerts</p>
       </div>
     );
   }
@@ -30,10 +31,10 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ processes }) => {
     <div className="bg-white rounded-lg shadow">
       <div className="px-6 py-4 border-b border-gray-200">
         <div className="flex justify-between items-center">
-          <h3 className="text-lg font-semibold text-gray-900">Alertas Recentes</h3>
+          <h3 className="text-lg font-semibold text-gray-900">Recent Alerts</h3>
           {criticalAlerts.length > 0 && (
             <span className="bg-red-100 text-red-800 px-2 py-1 rounded-full text-xs font-medium">
-              {criticalAlerts.length} críticos
+              {criticalAlerts.length} critical
             </span>
           )}
         </div>
@@ -58,7 +59,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ processes }) => {
                     alert.alertLevel >= 3 ? 'bg-yellow-100 text-yellow-800' :
                     'bg-blue-100 text-blue-800'
                   }`}>
-                    Nível {alert.alertLevel}
+                    Level {alert.alertLevel}
                   </span>
                 </div>
                 <p className="text-sm text-gray-600 mt-1">{alert.alertMessage}</p>

@@ -1,7 +1,7 @@
 import { BadRequestException, Injectable } from '@nestjs/common';
-import { ProcessesService } from 'src/processes/processes.service';
+import { ProcessesService } from '../processes/processes.service';
 import { MaintenanceWebhook } from './dto/maintenance-status.dto';
-import { PrismaService } from 'src/prisma/prisma.service';
+import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
 export class WebhooksService {
@@ -20,11 +20,11 @@ export class WebhooksService {
 		}
 	}
 
-	handleFinancialEvent() {
+	async handleFinancialEvent() {
 		throw new Error('Method not implemented.');
 	}
 
-	handleSupplyEvent() {
+	async handleSupplyEvent() {
 		throw new Error('Method not implemented.');
 	}
 }

@@ -21,16 +21,13 @@ export class ProcessesController {
 		@Param('processId') processId: string,
 		@Query('slaPercentage') slaPercentage: string,
 	) {
-		// Endpoint para testar diferentes cenários de SLA
 		const percentage = parseFloat(slaPercentage) || 50;
 
-		// Buscar processo
 		const process = await this.processesService.getProcessById(processId);
 		if (!process) {
 			return { error: 'Process not found' };
 		}
 
-		// Simular tempo decorrido baseado na porcentagem do SLA
 		const currentStage = process.stages.find(
 			(s) => s.stageKey === process.currentStage,
 		);
@@ -38,20 +35,16 @@ export class ProcessesController {
 			return { error: 'Current stage not found or not started' };
 		}
 
-		// Calcular tempo que deveria ter passado para atingir a porcentagem
 		const targetElapsedSeconds = (currentStage.sla * percentage) / 100;
 		const targetStartTime = new Date(Date.now() - targetElapsedSeconds * 1000);
 
-		// Atualizar startTime do estágio para simular o tempo decorrido
 		await this.processesService['prisma'].processStage.update({
 			where: { id: currentStage.id },
 			data: { startTime: targetStartTime },
 		});
 
-		// Recalcular SLA e alertas
 		await this.processesService['calculateSLAAndAlerts'](process);
 
-		// Retornar processo atualizado
 		return await this.processesService.getProcessById(processId);
 	}
 
@@ -62,10 +55,8 @@ export class ProcessesController {
 			return { error: 'Process not found' };
 		}
 
-		// Executar IA manualmente
 		await this.processesService['executeAI'](process);
 
-		// Retornar processo atualizado com insights de IA
 		return await this.processesService.getProcessById(processId);
 	}
 

@@ -1,6 +1,6 @@
 import { Module } from '@nestjs/common';
-import { AiService } from './ai.service';
 import { ConfigModule } from '@nestjs/config';
+import { AiService } from './ai.service';
 import { PrismaModule } from '../prisma/prisma.module';
 import { EventModule } from '../event/event.module';
 
