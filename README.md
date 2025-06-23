@@ -123,9 +123,8 @@ cd test-solutions-engineer-2
     # Backend Setup
     cd backend
     npm install
-    npx prisma generate
     npx prisma migrate dev
-    npm run start:dev
+    npm run start
 
     # Frontend Setup (in a new terminal)
     cd ../frontend
@@ -133,7 +132,7 @@ cd test-solutions-engineer-2
     npm start
 }
 ```
-
+### Access http://localhost:3001 to open the frontend app
 ### Prerequisites
 - Node.js 18+ 
 - PostgreSQL 14+
