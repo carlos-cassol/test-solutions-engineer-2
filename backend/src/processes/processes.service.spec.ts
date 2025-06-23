@@ -10,7 +10,7 @@ import {
 	MaintenanceStatus,
 	MaintenanceType,
 } from '../webhooks/enums/webhooks.enums';
-import { Process, ProcessStage, StageKey } from 'generated/prisma';
+import { Process, ProcessStage, StageKey } from '../database/prisma.entities';
 
 describe('ProcessesService', () => {
 	let service: ProcessesService;

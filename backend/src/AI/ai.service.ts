@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PrismaService } from '../prisma/prisma.service';
-import { Process } from 'generated/prisma';
+import { Process } from '../database/prisma.entities';
 import { EventService } from '../event/event.service';
 import { OpenAI } from 'openai';
 

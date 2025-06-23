@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { MaintenanceWebhook } from '../webhooks/dto/maintenance-status.dto';
 import { PrismaService } from '../prisma/prisma.service';
-import { Process, ProcessStage, StageKey } from 'generated/prisma';
+import { Process, ProcessStage, StageKey } from '../database/prisma.entities';
 import { SLA_CONFIG } from './constants/processes.constants';
 import { ConfigService } from '@nestjs/config';
 import { AiService } from '../AI/ai.service';
