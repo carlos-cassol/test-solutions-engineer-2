@@ -33,7 +33,6 @@ services:
     networks:
       - test-radar-network
     volumes:
-      - ./backend:/app
       - /app/node_modules
 
   # Frontend
